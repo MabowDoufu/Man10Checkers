@@ -1,0 +1,8 @@
+system: false
+prefix: "§c§l[Man10Checkers] "
+recruitment:
+  time: 120
+  messageInterval: 20
+game:
+  maxThinking: 30
+  maxAbility: 4

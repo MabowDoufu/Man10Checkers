@@ -1,4 +1,4 @@
-package me.mabowdoufu;
+package main.mabowdoufu;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
