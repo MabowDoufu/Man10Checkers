@@ -1,3 +1,3 @@
-参考：
+参考：      
 https://github.com/yusama125718/Man10Reversi      
 @jpbtk のコード
