@@ -5,6 +5,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class Man10Checkers extends JavaPlugin {
 
     public static JavaPlugin mcheckers;
+    public static main.mabowdoufu.BoardGameSys bgs;
     @Override
     public void onEnable() {
         mcheckers = this;
