@@ -1,0 +1,21 @@
+board1:
+  player:
+    - 13537543226
+    - 13537543226
+    - 13537543226
+  board: int[][]
+  isking: int[][]
+board2:
+  player:
+    - 13537543226
+    - 13537543226
+    - 13537543226
+  board: int[][]
+  isking: int[][]
+board3:
+  player:
+    - 13537543226
+    - 13537543226
+    - 13537543226
+  board: int[][]
+  isking: int[][]

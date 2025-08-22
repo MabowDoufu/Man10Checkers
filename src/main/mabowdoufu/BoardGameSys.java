@@ -1,5 +1,6 @@
 package main.mabowdoufu;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -16,11 +17,11 @@ public class BoardGameSys {
     // 0:未設置, 1:黒 2:白
     public static int[][] board = new int[8][8];
     public static boolean[][] isking = new boolean[8][8];
-    public static int playermen;
+    public static int playerpiece;
     //のちのちsysから切り離し
     public static void CreateGame(String boardname) {
-        File gameyml = new File("plugins/Man10Checkers/game/" + boardname + ".yml");
-        YamlConfiguration yml = new YamlConfiguration();
+        File f = new File("plugins/Man10Checkers/game.yml");
+        YamlConfiguration yml = YamlConfiguration.loadConfiguration(f);
         board[1][0] = 1;
         board[3][0] = 1;
         board[5][0] = 1;
@@ -45,42 +46,47 @@ public class BoardGameSys {
         board[3][7] = 2;
         board[5][7] = 2;
         board[7][7] = 2;
-        yml.set("board", board);
-        yml.set("IsKing", isking);
-        playermen =1;
+        yml.getKeys(true);
+        yml.set(boardname+ ".board", board);
+        yml.set(boardname+ ".IsKing", isking);
+        yml.set(boardname+ ".DuringGame", false);
+        yml.set(boardname+ ".Recruiting", false);
+
+
+        playerpiece =1;
 
         try {
-            yml.save(gameyml);
+            yml.save(f);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
     public void LoadBoard(String boardname) {
-        File gameyml = new File("plugins/Man10Checkers/game/" + boardname + ".yml");
-        YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
+        File f = new File("plugins/Man10Checkers/game.yml");
+        YamlConfiguration yml = YamlConfiguration.loadConfiguration(f);
         board = (int[][]) yml.get("board");
         isking = (boolean[][]) yml.get("isking");
     }
 
     public static void saveBoard(String boardname, int[][] board) {
-        File gameyml = new File("plugins/Man10Checkers/game/" + boardname + ".yml");
-        YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
+        File f = new File("plugins/Man10Checkers/game.yml");
+        YamlConfiguration yml = YamlConfiguration.loadConfiguration(f);
         yml.set("board", board);
         yml.set("isking", isking);
         try {
-            yml.save(gameyml);
+            yml.save(f);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     public static boolean IsMyMen(int x1, int y1) {
 
-        int selectmen = board[x1][y1];
+        int selectpiece = board[x1][y1];
         //相手の駒選択しているかどうか
-        if (playermen == 1 && ((selectmen == 3) || (selectmen == 4))) {
+        if (playerpiece == 1 && ((selectpiece == 3) || (selectpiece == 4))) {
             return false;
         }
-        if (playermen == 2 && ((selectmen == 1) || (selectmen == 2))) {
+        if (playerpiece == 2 && ((selectpiece == 1) || (selectpiece == 2))) {
             return false;
         }
         return true;
@@ -88,14 +94,14 @@ public class BoardGameSys {
 
     //directionは1または-1のみをとる
     private static boolean IsJumpable(int x1, int y1, int xdirection, int ydirection) {
-        int enemymen;
-        if (playermen == 1) {
-            enemymen = 2;
+        int enemypiece;
+        if (playerpiece == 1) {
+            enemypiece = 2;
         } else {
-            enemymen = 1;
+            enemypiece = 1;
         }
         try {
-            if (board[x1 + xdirection][y1 + ydirection] == enemymen && board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0) {
+            if (board[x1 + xdirection][y1 + ydirection] == enemypiece && board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0) {
                 return true;
             }
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -107,7 +113,7 @@ public class BoardGameSys {
 
     private static void ContinuousMove(int x1, int y1) {
         List<Integer> Movable = new ArrayList<Integer>();
-        if (playermen == 1 || (playermen == 2 && isking[x1][y1])) {
+        if (playerpiece == 1 || (playerpiece == 2 && isking[x1][y1])) {
             try {
                 if (SelectCorrectMove(x1, y1, x1 + 2, y1 + 2)) {
                     Movable.add(1);
@@ -123,7 +129,7 @@ public class BoardGameSys {
                 e.printStackTrace();
             }
         }
-        if (playermen == 2 || (playermen == 1 && isking[x1][y1])) {
+        if (playerpiece == 2 || (playerpiece == 1 && isking[x1][y1])) {
             try {
                 if (SelectCorrectMove(x1, y1, x1 + 2, y1 - 2)) {
                     Movable.add(3);
@@ -144,25 +150,25 @@ public class BoardGameSys {
         if (movePattern == 1) {
             isking[x1 + 2][y1 + 2] = isking[x1][y1];
             board[x1][y1] = 0;
-            board[x1 + 2][y1 + 2] = playermen;
+            board[x1 + 2][y1 + 2] = playerpiece;
             isking[x1][y1] = false;
             ContinuousMove(x1 + 2, y1 + 2);
         } else if (movePattern == 2) {
             isking[x1 + 2][y1 + 2] = isking[x1][y1];
             board[x1][y1] = 0;
-            board[x1 - 2][y1 + 2] = playermen;
+            board[x1 - 2][y1 + 2] = playerpiece;
             isking[x1][y1] = false;
             ContinuousMove(x1 - 2, y1 + 2);
         } else if (movePattern == 3) {
             isking[x1 + 2][y1 + 2] = isking[x1][y1];
             board[x1][y1] = 0;
-            board[x1 + 2][y1 - 2] = playermen;
+            board[x1 + 2][y1 - 2] = playerpiece;
             isking[x1][y1] = false;
             ContinuousMove(x1 + 2, y1 - 2);
         } else if (movePattern == 4) {
             isking[x1 + 2][y1 + 2] = isking[x1][y1];
             board[x1][y1] = 0;
-            board[x1 - 2][y1 - 2] = playermen;
+            board[x1 - 2][y1 - 2] = playerpiece;
             isking[x1][y1] = false;
             ContinuousMove(x1 - 2, y1 - 2);
         }
@@ -171,19 +177,19 @@ public class BoardGameSys {
     //相手の駒をジャンプ可能な手があり、その場合にその手を選択しているかどうか
     private static boolean SelectCorrectMove(int x1, int y1, int x2, int y2) {
         //yml読み込み
-        int enemymen;
-        if (playermen == 1) {
-            enemymen = 2;
+        int enemypiece;
+        if (playerpiece == 1) {
+            enemypiece = 2;
         } else {
-            enemymen = 1;
+            enemypiece = 1;
         }
         //placeableチェック
         int checkX = 0;
         int checkY = 0;
         boolean exist = false;
         for (int[] row : board) {
-            for (int men : row) {
-                if (men == playermen) {
+            for (int piece : row) {
+                if (piece == playerpiece) {
                     if (IsJumpable(checkX, checkY, 1, 1)) {
                         exist = true;
                         if ((checkX == x1) && (checkY == y1)) {
@@ -215,12 +221,12 @@ public class BoardGameSys {
         }
         return !exist;
     }
-    private static boolean ExistJumpMove(int playermen2) {
+    private static boolean ExistJumpMove(int playerpiece2) {
         int checkX = 0;
         int checkY = 0;
         for (int[] row : board) {
-            for (int men : row) {
-                if (men == playermen2) {
+            for (int piece : row) {
+                if (piece == playerpiece2) {
                     if (IsJumpable(checkX, checkY, 1, 1)) {
                         return true;
                     }
@@ -249,7 +255,7 @@ public class BoardGameSys {
             return;
         }
 
-        int selectmen = board[x1][y1];
+        int selectpiece = board[x1][y1];
 
         //破壊可能な手があるのにも関わらずその手を選択していない場合を除外
         if (!SelectCorrectMove(x1, y1, x2, y2)) {
@@ -259,17 +265,17 @@ public class BoardGameSys {
 
         //
         if (abs(x1 - x2) == 1 && abs(y1 - y2) == 1) {
-            if (board[x2][y2] == playermen) {
+            if (board[x2][y2] == playerpiece) {
                 board[x1][y1] = 0;
                 isking[x2][y2] = isking[x1][y1];
-                board[x2][y2] = playermen;
+                board[x2][y2] = playerpiece;
                 isking[x1][y1] = false;
             }
         } else if (abs(x1 - x2) == 2 && abs(y1 - y2) == 2) {
             if (IsJumpable(x1, y1, x2 - x1, y2 - y1)) {
                 board[x1][y1] = 0;
                 isking[x2][y2] = isking[x1][y1];
-                board[x2][y2] = playermen;
+                board[x2][y2] = playerpiece;
                 isking[x1][y1] = false;
                 ContinuousMove(x2, y2);
             }
@@ -279,10 +285,10 @@ public class BoardGameSys {
         }
 
         saveBoard(boardname, board);
-        if(playermen ==1) {
-            playermen =2;
+        if(playerpiece ==1) {
+            playerpiece =2;
         }else {
-            playermen =1;
+            playerpiece =1;
         }
     }
     private void CreateKing(int[][] board, boolean[][] IsKing) {
