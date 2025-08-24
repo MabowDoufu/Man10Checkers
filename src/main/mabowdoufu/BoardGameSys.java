@@ -15,78 +15,85 @@ import static java.lang.Math.*;
 public class BoardGameSys {
     // 盤面情報
     // 0:未設置, 1:黒 2:白
-    public static int[][] board = new int[8][8];
-    public static boolean[][] isking = new boolean[8][8];
-    public static int playerpiece;
+    public static File f;
+    public static YamlConfiguration yml;
+    public static int[][] Board = new int[8][8];
+    public static boolean[][] IsKing = new boolean[8][8];
+    public static int PlayerPiece;
+    public static boolean DuringGame;
+    public static boolean Recruiting;
+    public static int Turn;
+
     //のちのちsysから切り離し
-    public static void CreateGame(String boardname) {
-        File f = new File("plugins/Man10Checkers/game.yml");
-        YamlConfiguration yml = YamlConfiguration.loadConfiguration(f);
-        board[1][0] = 1;
-        board[3][0] = 1;
-        board[5][0] = 1;
-        board[7][0] = 1;
-        board[1][1] = 1;
-        board[3][1] = 1;
-        board[5][1] = 1;
-        board[7][1] = 1;
-        board[1][2] = 1;
-        board[3][2] = 1;
-        board[5][2] = 1;
-        board[7][2] = 1;
-        board[1][5] = 2;
-        board[3][5] = 2;
-        board[5][5] = 2;
-        board[7][5] = 2;
-        board[1][6] = 2;
-        board[3][6] = 2;
-        board[5][6] = 2;
-        board[7][6] = 2;
-        board[1][7] = 2;
-        board[3][7] = 2;
-        board[5][7] = 2;
-        board[7][7] = 2;
-        yml.getKeys(true);
-        yml.set(boardname+ ".board", board);
-        yml.set(boardname+ ".IsKing", isking);
-        yml.set(boardname+ ".DuringGame", false);
-        yml.set(boardname+ ".Recruiting", false);
-
-
-        playerpiece =1;
-
+    public static void ResetYml(String Boardname) {
+        f = new File("plugins/Man10Checkers/game.yml");
+        yml = YamlConfiguration.loadConfiguration(f);
+        Board[1][0] = 1;
+        Board[3][0] = 1;
+        Board[5][0] = 1;
+        Board[7][0] = 1;
+        Board[1][1] = 1;
+        Board[3][1] = 1;
+        Board[5][1] = 1;
+        Board[7][1] = 1;
+        Board[1][2] = 1;
+        Board[3][2] = 1;
+        Board[5][2] = 1;
+        Board[7][2] = 1;
+        Board[1][5] = 2;
+        Board[3][5] = 2;
+        Board[5][5] = 2;
+        Board[7][5] = 2;
+        Board[1][6] = 2;
+        Board[3][6] = 2;
+        Board[5][6] = 2;
+        Board[7][6] = 2;
+        Board[1][7] = 2;
+        Board[3][7] = 2;
+        Board[5][7] = 2;
+        Board[7][7] = 2;
+        yml.set(Boardname+ ".Board", Board);
+        yml.set(Boardname+ ".IsKing", IsKing);
+        yml.set(Boardname+ ".DuringGame", false);
+        yml.set(Boardname+ ".Recruiting", false);
+        yml.set(Boardname+ ".Turn", 1);
+        yml.set(Boardname+ ".Players", 1);
+        PlayerPiece =1;
         try {
             yml.save(f);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    public void LoadBoard(String boardname) {
-        File f = new File("plugins/Man10Checkers/game.yml");
-        YamlConfiguration yml = YamlConfiguration.loadConfiguration(f);
-        board = (int[][]) yml.get("board");
-        isking = (boolean[][]) yml.get("isking");
+    public static void LoadBoard(String Boardname) {
+        f = new File("plugins/Man10Checkers/game.yml");
+        yml = YamlConfiguration.loadConfiguration(f);
+        Board = (int[][]) yml.get(Boardname+".Board");
+        IsKing = (boolean[][]) yml.get(Boardname+".IsKing");
+        DuringGame = (boolean) yml.get(Boardname+".DuringGame");
+        Recruiting = (boolean) yml.get(Boardname+".Recruiting");
+        Turn = (int) yml.get(Boardname+".Turn");
     }
 
-    public static void saveBoard(String boardname, int[][] board) {
-        File f = new File("plugins/Man10Checkers/game.yml");
-        YamlConfiguration yml = YamlConfiguration.loadConfiguration(f);
-        yml.set("board", board);
-        yml.set("isking", isking);
+    public static void saveBoard(String Boardname, int[][] Board) {
+        f = new File("plugins/Man10Checkers/game.yml");
+        yml = YamlConfiguration.loadConfiguration(f);
+        yml.set(Boardname+".Board", Board);
+        yml.set(Boardname+".IsKing", IsKing);
         try {
             yml.save(f);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    public static boolean IsMyMen(int x1, int y1) {
-
-        int selectpiece = board[x1][y1];
+    public static boolean IsMyMen(String Boardname,int x1, int y1) {
+        LoadBoard(Boardname);
+        int selectpiece = Board[x1][y1];
         //相手の駒選択しているかどうか
-        if (playerpiece == 1 && ((selectpiece == 3) || (selectpiece == 4))) {
+        if (PlayerPiece == 1 && ((selectpiece == 3) || (selectpiece == 4))) {
             return false;
         }
-        if (playerpiece == 2 && ((selectpiece == 1) || (selectpiece == 2))) {
+        if (PlayerPiece == 2 && ((selectpiece == 1) || (selectpiece == 2))) {
             return false;
         }
         return true;
@@ -95,13 +102,13 @@ public class BoardGameSys {
     //directionは1または-1のみをとる
     private static boolean IsJumpable(int x1, int y1, int xdirection, int ydirection) {
         int enemypiece;
-        if (playerpiece == 1) {
+        if (PlayerPiece == 1) {
             enemypiece = 2;
         } else {
             enemypiece = 1;
         }
         try {
-            if (board[x1 + xdirection][y1 + ydirection] == enemypiece && board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0) {
+            if (Board[x1 + xdirection][y1 + ydirection] == enemypiece && Board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0) {
                 return true;
             }
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -113,7 +120,7 @@ public class BoardGameSys {
 
     private static void ContinuousMove(int x1, int y1) {
         List<Integer> Movable = new ArrayList<Integer>();
-        if (playerpiece == 1 || (playerpiece == 2 && isking[x1][y1])) {
+        if (PlayerPiece == 1 || (PlayerPiece == 2 && IsKing[x1][y1])) {
             try {
                 if (SelectCorrectMove(x1, y1, x1 + 2, y1 + 2)) {
                     Movable.add(1);
@@ -129,7 +136,7 @@ public class BoardGameSys {
                 e.printStackTrace();
             }
         }
-        if (playerpiece == 2 || (playerpiece == 1 && isking[x1][y1])) {
+        if (PlayerPiece == 2 || (PlayerPiece == 1 && IsKing[x1][y1])) {
             try {
                 if (SelectCorrectMove(x1, y1, x1 + 2, y1 - 2)) {
                     Movable.add(3);
@@ -148,28 +155,44 @@ public class BoardGameSys {
         Random random = new Random();
         int movePattern = Movable.get(random.nextInt(Movable.size() - 1)); // 0からMovable.size()-1までの整数を生成
         if (movePattern == 1) {
-            isking[x1 + 2][y1 + 2] = isking[x1][y1];
-            board[x1][y1] = 0;
-            board[x1 + 2][y1 + 2] = playerpiece;
-            isking[x1][y1] = false;
+            IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
+            Board[x1][y1] = 0;
+            Board[x1 + 2][y1 + 2] = PlayerPiece;
+            IsKing[x1][y1] = false;
+
+            Board[x1+1][y1+1] = 0;
+            IsKing[x1+1][y1+1] = false;
+
             ContinuousMove(x1 + 2, y1 + 2);
         } else if (movePattern == 2) {
-            isking[x1 + 2][y1 + 2] = isking[x1][y1];
-            board[x1][y1] = 0;
-            board[x1 - 2][y1 + 2] = playerpiece;
-            isking[x1][y1] = false;
+            IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
+            Board[x1][y1] = 0;
+            Board[x1 - 2][y1 + 2] = PlayerPiece;
+            IsKing[x1][y1] = false;
+
+            Board[x1-1][y1+1] = 0;
+            IsKing[x1-1][y1+1] = false;
+
             ContinuousMove(x1 - 2, y1 + 2);
         } else if (movePattern == 3) {
-            isking[x1 + 2][y1 + 2] = isking[x1][y1];
-            board[x1][y1] = 0;
-            board[x1 + 2][y1 - 2] = playerpiece;
-            isking[x1][y1] = false;
+            IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
+            Board[x1][y1] = 0;
+            Board[x1 + 2][y1 - 2] = PlayerPiece;
+            IsKing[x1][y1] = false;
+
+            Board[x1+1][y1-1] = 0;
+            IsKing[x1+1][y1-1] = false;
+
             ContinuousMove(x1 + 2, y1 - 2);
         } else if (movePattern == 4) {
-            isking[x1 + 2][y1 + 2] = isking[x1][y1];
-            board[x1][y1] = 0;
-            board[x1 - 2][y1 - 2] = playerpiece;
-            isking[x1][y1] = false;
+            IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
+            Board[x1][y1] = 0;
+            Board[x1 - 2][y1 - 2] = PlayerPiece;
+            IsKing[x1][y1] = false;
+
+            Board[x1-1][y1-1] = 0;
+            IsKing[x1-1][y1-1] = false;
+
             ContinuousMove(x1 - 2, y1 - 2);
         }
     }
@@ -178,7 +201,7 @@ public class BoardGameSys {
     private static boolean SelectCorrectMove(int x1, int y1, int x2, int y2) {
         //yml読み込み
         int enemypiece;
-        if (playerpiece == 1) {
+        if (PlayerPiece == 1) {
             enemypiece = 2;
         } else {
             enemypiece = 1;
@@ -187,9 +210,9 @@ public class BoardGameSys {
         int checkX = 0;
         int checkY = 0;
         boolean exist = false;
-        for (int[] row : board) {
+        for (int[] row : Board) {
             for (int piece : row) {
-                if (piece == playerpiece) {
+                if (piece == PlayerPiece) {
                     if (IsJumpable(checkX, checkY, 1, 1)) {
                         exist = true;
                         if ((checkX == x1) && (checkY == y1)) {
@@ -221,12 +244,12 @@ public class BoardGameSys {
         }
         return !exist;
     }
-    private static boolean ExistJumpMove(int playerpiece2) {
+    private static boolean ExistJumpMove(int PlayerPiece2) {
         int checkX = 0;
         int checkY = 0;
-        for (int[] row : board) {
+        for (int[] row : Board) {
             for (int piece : row) {
-                if (piece == playerpiece2) {
+                if (piece == PlayerPiece2) {
                     if (IsJumpable(checkX, checkY, 1, 1)) {
                         return true;
                     }
@@ -248,14 +271,16 @@ public class BoardGameSys {
     }
 
     //駒をおけるか
-    public static void BoardInput(String boardname,int x1, int y1, int x2, int y2) {
+    public static void BoardInput(String Boardname,int x1, int y1, int x2, int y2) {
+        LoadBoard(Boardname);
+        PlayerPiece = yml.getInt(Boardname +".Turn");
 
         //チェッカーで使用しないマスを選択
         if ((((x1 % 2) + (y1 % 2) % 2) == 1) || (((x2 % 2) + (y2 % 2) % 2) == 1)) {
             return;
         }
 
-        int selectpiece = board[x1][y1];
+        int selectpiece = Board[x1][y1];
 
         //破壊可能な手があるのにも関わらずその手を選択していない場合を除外
         if (!SelectCorrectMove(x1, y1, x2, y2)) {
@@ -265,18 +290,22 @@ public class BoardGameSys {
 
         //
         if (abs(x1 - x2) == 1 && abs(y1 - y2) == 1) {
-            if (board[x2][y2] == playerpiece) {
-                board[x1][y1] = 0;
-                isking[x2][y2] = isking[x1][y1];
-                board[x2][y2] = playerpiece;
-                isking[x1][y1] = false;
+            if (Board[x2][y2] == PlayerPiece) {
+                Board[x1][y1] = 0;
+                IsKing[x2][y2] = IsKing[x1][y1];
+                Board[x2][y2] = PlayerPiece;
+                IsKing[x1][y1] = false;
             }
         } else if (abs(x1 - x2) == 2 && abs(y1 - y2) == 2) {
             if (IsJumpable(x1, y1, x2 - x1, y2 - y1)) {
-                board[x1][y1] = 0;
-                isking[x2][y2] = isking[x1][y1];
-                board[x2][y2] = playerpiece;
-                isking[x1][y1] = false;
+                Board[x1][y1] = 0;
+                IsKing[x2][y2] = IsKing[x1][y1];
+                Board[x2][y2] = PlayerPiece;
+                IsKing[x1][y1] = false;
+
+                Board[x1+(x2 - x1)/2][y1+(y1 - y2)/2] = 0;
+                IsKing[x1+(x2 - x1)/2][y1+(y1 - y2)/2] = false;
+
                 ContinuousMove(x2, y2);
             }
         } else {
@@ -284,29 +313,31 @@ public class BoardGameSys {
             return;
         }
 
-        saveBoard(boardname, board);
-        if(playerpiece ==1) {
-            playerpiece =2;
+        saveBoard(Boardname, Board);
+        if(PlayerPiece ==1) {
+            PlayerPiece =2;
         }else {
-            playerpiece =1;
+            PlayerPiece =1;
         }
+        CreateKing();
     }
-    private void CreateKing(int[][] board, boolean[][] IsKing) {
-        if(board[1][0]==2) isking[1][0] = true;
-        if(board[3][0]==2) isking[3][0] = true;
-        if(board[5][0]==2) isking[5][0] = true;
-        if(board[7][0]==2) isking[7][0] = true;
-        if(board[1][7]==1) isking[1][0] = true;
-        if(board[3][7]==1) isking[3][0] = true;
-        if(board[5][7]==1) isking[5][0] = true;
-        if(board[7][7]==1) isking[7][0] = true;
+    private static void CreateKing() {
+        if(Board[1][0]==2) IsKing[1][0] = true;
+        if(Board[3][0]==2) IsKing[3][0] = true;
+        if(Board[5][0]==2) IsKing[5][0] = true;
+        if(Board[7][0]==2) IsKing[7][0] = true;
+        if(Board[1][7]==1) IsKing[1][0] = true;
+        if(Board[3][7]==1) IsKing[3][0] = true;
+        if(Board[5][7]==1) IsKing[5][0] = true;
+        if(Board[7][7]==1) IsKing[7][0] = true;
     }
 
-    public static int WinCheck() {
+    public static int WinCheck(String Boardname) {
+        LoadBoard(Boardname);
         boolean ExistBlackMen = false;
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[i].length; j++) {
-                if (board[i][j] == 1) {
+        for (int i = 0; i < Board.length; i++) {
+            for (int j = 0; j < Board[i].length; j++) {
+                if (Board[i][j] == 1) {
                     ExistBlackMen = true;
                     break; // 内側のループを抜ける
                 }
@@ -318,9 +349,9 @@ public class BoardGameSys {
         if (!ExistBlackMen) return 2;
 
         boolean ExistWhiteMen = false;
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[i].length; j++) {
-                if (board[i][j] == 2) {
+        for (int i = 0; i < Board.length; i++) {
+            for (int j = 0; j < Board[i].length; j++) {
+                if (Board[i][j] == 2) {
                     ExistWhiteMen = true;
                     break; // 内側のループを抜ける
                 }

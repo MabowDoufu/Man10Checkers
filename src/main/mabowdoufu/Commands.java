@@ -25,18 +25,18 @@ import static main.mabowdoufu.Man10Checkers.mcheckers;
 
 public class Commands implements @Nullable CommandExecutor, TabCompleter {
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, org.bukkit.command.@NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!sender.hasPermission("mcheckers.p")) return true;
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!sender.hasPermission("mcheckers.op")) return true;
         switch (args.length){
             case 1:
                 if (args[0].equals("help")){
-                    sender.sendMessage(Config.prefix + "§r/mcheckers board list : 開催中のリバーシのリストを表示");
+                    sender.sendMessage(Config.prefix + "§r/mcheckers Board list : 開催中のリバーシのリストを表示");
                     sender.sendMessage(Config.prefix + "§r/mcheckers start [ボード名] : リバーシを開始します");
                     sender.sendMessage(Config.prefix + "§r/mcheckers join [ボード名] : リバーシに参加します");
                     if (sender.hasPermission("mcheckers.op")){
                         sender.sendMessage(Config.prefix + "§r=== 管理者コマンド ===");
                         sender.sendMessage(Config.prefix + "§r/mcheckers [on/off] : システムを稼働/停止します");
-                        sender.sendMessage(Config.prefix + "§r/mcheckers board create [名前] : ボードを作成します");
+                        sender.sendMessage(Config.prefix + "§r/mcheckers Board create [名前] : ボードを作成します");
                         sender.sendMessage(Config.prefix + "§r/mcheckers end [ボード名] : ゲームを強制終了します");
                     }
                 }
@@ -76,14 +76,14 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     }
                     UUID sender_uuid = ((Player) sender).getUniqueId();
                     File gameyml = new File("plugins/Man10Checkers/game.yml");
-                    YamlConfiguration yml = new YamlConfiguration();
+                    YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
                     boolean IsJoining = false;
                     boolean ExistBoard = false;
-                    for (String boardname : yml.getKeys(false)) {
-                        if (args[1] == boardname){
+                    for (String Boardname : yml.getKeys(false)) {
+                        if (args[1] == Boardname){
                             ExistBoard = true;
                         }
-                        for (String joinning_uuid : yml.getStringList(boardname + ".players"))
+                        for (String joinning_uuid : yml.getStringList(Boardname + ".Players"))
                             if(sender_uuid.toString().equals(joinning_uuid)) {
                                 IsJoining = true;
                             }
@@ -101,7 +101,7 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         return true;
                     }
                     return true;
-                    //メイン処理
+                    ///ゲームスタート処理
 
                 }
                 else if (args[0].equals("join")){
@@ -110,15 +110,15 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         return true;
                     }
                     File gameyml = new File("plugins/Man10Checkers/game.yml");
-                    YamlConfiguration yml = new YamlConfiguration();
+                    YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
                     UUID sender_uuid = ((Player) sender).getUniqueId();
                     boolean IsJoining = false;
                     boolean ExistBoard = false;
-                    for (String boardname : yml.getKeys(false)) {
-                        if (args[1] == boardname){
+                    for (String Boardname : yml.getKeys(false)) {
+                        if (args[1] == Boardname){
                             ExistBoard = true;
                         }
-                        for (String joinning_uuid : yml.getStringList(boardname + ".players"))
+                        for (String joinning_uuid : yml.getStringList(Boardname + ".Players"))
                             if(sender_uuid.toString().equals(joinning_uuid)) {
                                 IsJoining = true;
                             }
@@ -135,27 +135,43 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         sender.sendMessage(Config.prefix + "§rそのボードはプレイヤーを募集していません");
                         return true;
                     }
-                    //メイン処理
-                    yml.set(args[1] +(".players"),sender_uuid);
+                    ///ゲーム参加処理
+                    yml.set(args[1] +(".Players"),sender_uuid);
                     return true;
                 }
                 else if (args[0].equals("end") && sender.hasPermission("mcheckers.op")){
                     File gameyml = new File("plugins/Man10Checkers/game.yml");
-                    YamlConfiguration yml = new YamlConfiguration();
+                    YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
                     if (yml.getBoolean(".DuringGame")||yml.getBoolean(".Recruiting")){
                         sender.sendMessage(Config.prefix + "§rそのボードはゲーム中ではありません");
                         return true;
                     }
-                    // 8/22作業ここまで　end時のyml処理書く↓
-                    games.get(args[1]).ForceEnd();
-                    sender.sendMessage(Config.prefix + "§r終了しました");
+                    try{
+                        yml.set(args[1]+".Player",null);
+                        yml.set(args[1]+".DuringGame",null);
+                        yml.set(args[1]+".Recruiting",null);
+                        yml.set(args[1]+".Board",null);
+                        yml.set(args[1]+".IsKing",null);
+                        ///ゲーム強制終了処理を書く(events終わった後に書く)
+                        sender.sendMessage(Config.prefix + "§r終了しました");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        sender.sendMessage(Config.prefix + "§rエラーが発生しました");
+                    }
                     return true;
                 }
                 break;
-
             case 3:
-                if (args[0].equals("board") && args[1].equals("create") && sender.hasPermission("mcheckers.op")){
-                    if (BoardManager.boards.containsKey(args[2])){
+                if (args[0].equals("Board") && args[1].equals("create") && sender.hasPermission("mcheckers.op")){
+                    File gameyml = new File("plugins/Man10Checkers/game.yml");
+                    YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
+                    boolean ExistBoard = false;
+                    for (String Boardname : yml.getKeys(false)) {
+                        if (args[1] == Boardname){
+                            ExistBoard = true;
+                        }
+                    }
+                    if (ExistBoard){
                         sender.sendMessage(Config.prefix + "§rその名前のボードはすでに存在します");
                         return true;
                     }
@@ -170,26 +186,35 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, org.bukkit.command.@NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        if (!sender.hasPermission("mcheckers.p")) return List.of();
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (!sender.hasPermission("mcheckers.op")) return List.of();
         if (args.length == 1){
-            if (sender.hasPermission("mcheckers.op")) return Arrays.asList("help", "start", "join", "on", "off", "board", "end", "open", "abilities");
-            else return Arrays.asList("start", "join", "board");
+            if (sender.hasPermission("mcheckers.op")) return Arrays.asList("help", "start", "join", "on", "off", "Board", "end", "open", "abilities");
+            else return Arrays.asList("start", "join", "Board");
         }
         else if (args.length == 2){
+            File gameyml = new File("plugins/Man10Checkers/game.yml");
+            YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
+            List<String> Boardlist = null;
+            try{
+                Boardlist.addAll(yml.getKeys(false));
+            } catch (Exception e) {
+                e.printStackTrace();
+                sender.sendMessage(Config.prefix + "§rエラーが発生しました");
+            }
             if (args[0].equals("start")){
-                return BoardManager.boards.keySet().stream().toList();
+                return Boardlist;
             }
             else if (args[0].equals("join") || (args[0].equals("end") && sender.hasPermission("mcheckers.op"))){
-                return games.keySet().stream().toList();
+                return Boardlist;
             }
-            else if (args[0].equals("board")){
+            else if (args[0].equals("Board")){
                 if (sender.hasPermission("mcheckers.op")) return Arrays.asList("list", "create");
                 else Collections.singletonList("list");
             }
         }
         else if (args.length == 3){
-            if (args[0].equals("board") && args[1].equals("create") && sender.hasPermission("mcheckers.op")){
+            if (args[0].equals("Board") && args[1].equals("create") && sender.hasPermission("mcheckers.op")){
                 Collections.singletonList("[名前]");
             }
         }
