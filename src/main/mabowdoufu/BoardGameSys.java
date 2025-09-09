@@ -1,16 +1,22 @@
 package main.mabowdoufu;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.spi.AbstractResourceBundleProvider;
 import static java.lang.Math.*;
+import static org.bukkit.Material.*;
+
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 public class BoardGameSys {
     // 盤面情報
@@ -23,6 +29,7 @@ public class BoardGameSys {
     public static boolean DuringGame;
     public static boolean Recruiting;
     public static int Turn;
+    public static List<Player> Players;
 
     //のちのちsysから切り離し
     public static void ResetYml(String Boardname) {
@@ -57,7 +64,8 @@ public class BoardGameSys {
         yml.set(Boardname+ ".DuringGame", false);
         yml.set(Boardname+ ".Recruiting", false);
         yml.set(Boardname+ ".Turn", 1);
-        yml.set(Boardname+ ".Players", 1);
+        yml.set(Boardname+ ".Player1", 1);
+        yml.set(Boardname+ ".Player2", 1);
         PlayerPiece =1;
         try {
             yml.save(f);
@@ -65,29 +73,71 @@ public class BoardGameSys {
             e.printStackTrace();
         }
     }
-    public static void LoadBoard(String Boardname) {
+
+    public static void LoadData(String Boardname) {
         f = new File("plugins/Man10Checkers/game.yml");
         yml = YamlConfiguration.loadConfiguration(f);
         Board = (int[][]) yml.get(Boardname+".Board");
         IsKing = (boolean[][]) yml.get(Boardname+".IsKing");
-        DuringGame = (boolean) yml.get(Boardname+".DuringGame");
-        Recruiting = (boolean) yml.get(Boardname+".Recruiting");
-        Turn = (int) yml.get(Boardname+".Turn");
+        DuringGame = yml.getBoolean(Boardname+".DuringGame");
+        Recruiting = yml.getBoolean(Boardname+".Recruiting");
+        Turn = yml.getInt(Boardname+".Turn");
+        Players = (List<Player>) yml.get(Boardname+".Players");
+
     }
 
-    public static void saveBoard(String Boardname, int[][] Board) {
+    public static void saveData(String Boardname) {
         f = new File("plugins/Man10Checkers/game.yml");
         yml = YamlConfiguration.loadConfiguration(f);
         yml.set(Boardname+".Board", Board);
         yml.set(Boardname+".IsKing", IsKing);
+        yml.set(Boardname+".DuringGame", DuringGame);
+        yml.set(Boardname+".Recruiting", Recruiting);
+        yml.set(Boardname+".Turn", Turn);
+        yml.set(Boardname+".Players", Players);
+
         try {
             yml.save(f);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+    protected static ItemStack createGUIItem(final Material material, final String name, final String... lore){
+        final ItemStack item=new ItemStack(material,1);
+        final ItemMeta meta=item.getItemMeta();
+        meta.setDisplayName(name);
+        meta.setLore(Arrays.asList(lore));
+        item.setItemMeta(meta);
+        return item;
+    }
+    ///テキサスホールデムプラグインより
+    public static String getBoard(UUID uuid){
+        for (String BoardName : yml.getKeys(false)) {
+            for (String joinning_uuid : yml.getStringList(BoardName + ".Players"))
+                if(uuid.toString().equals(joinning_uuid)) {
+                    return BoardName;
+                }
+        }
+        return null;
+    }
+    public static Inventory getInv(){
+        Inventory inv;
+
+        inv= Bukkit.createInventory(null,54,Config.prefix);
+        int i =0;
+        for(int[] BoardRow : Board){
+            for (int Men : BoardRow){
+                i++;
+                int slot = (i%6 -1) + (int) floor((double) i /6) +1;
+                if(Men == 1) inv.setItem(slot,createGUIItem(BLACK_CONCRETE,"黒の駒",""));
+                if(Men == 2) inv.setItem(slot,createGUIItem(WHITE_CONCRETE,"白の駒",""));
+            }
+        }
+        return inv;
+    }
+
     public static boolean IsMyMen(String Boardname,int x1, int y1) {
-        LoadBoard(Boardname);
+        LoadData(Boardname);
         int selectpiece = Board[x1][y1];
         //相手の駒選択しているかどうか
         if (PlayerPiece == 1 && ((selectpiece == 3) || (selectpiece == 4))) {
@@ -272,7 +322,7 @@ public class BoardGameSys {
 
     //駒をおけるか
     public static void BoardInput(String Boardname,int x1, int y1, int x2, int y2) {
-        LoadBoard(Boardname);
+        LoadData(Boardname);
         PlayerPiece = yml.getInt(Boardname +".Turn");
 
         //チェッカーで使用しないマスを選択
@@ -313,7 +363,7 @@ public class BoardGameSys {
             return;
         }
 
-        saveBoard(Boardname, Board);
+        saveData(Boardname);
         if(PlayerPiece ==1) {
             PlayerPiece =2;
         }else {
@@ -333,7 +383,7 @@ public class BoardGameSys {
     }
 
     public static int WinCheck(String Boardname) {
-        LoadBoard(Boardname);
+        LoadData(Boardname);
         boolean ExistBlackMen = false;
         for (int i = 0; i < Board.length; i++) {
             for (int j = 0; j < Board[i].length; j++) {

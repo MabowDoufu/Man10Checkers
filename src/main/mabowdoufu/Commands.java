@@ -13,15 +13,14 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import java.io.File;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static main.mabowdoufu.Man10Checkers.mcheckers;
-
 
 public class Commands implements @Nullable CommandExecutor, TabCompleter {
     @Override
@@ -31,8 +30,9 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
             case 1:
                 if (args[0].equals("help")){
                     sender.sendMessage(Config.prefix + "§r/mcheckers Board list : 開催中のリバーシのリストを表示");
-                    sender.sendMessage(Config.prefix + "§r/mcheckers start [ボード名] : リバーシを開始します");
+                    sender.sendMessage(Config.prefix + "§r/mcheckers start : リバーシを開始します");
                     sender.sendMessage(Config.prefix + "§r/mcheckers join [ボード名] : リバーシに参加します");
+                    sender.sendMessage(Config.prefix + "§r/mcheckers open : リバーシの画面を再表示します（ゲーム参加時のみ有効）");
                     if (sender.hasPermission("mcheckers.op")){
                         sender.sendMessage(Config.prefix + "§r=== 管理者コマンド ===");
                         sender.sendMessage(Config.prefix + "§r/mcheckers [on/off] : システムを稼働/停止します");
@@ -62,10 +62,8 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     sender.sendMessage(Config.prefix + "§rOFFにしました");
                     return true;
                 }
-                break;
-
-            case 2:
-                if (args[0].equals("start")){
+                else if (args[0].equals("start")){
+                    //finish
                     if (!Config.system){
                         sender.sendMessage(Config.prefix + "§rシステムはOFFです");
                         return true;
@@ -77,13 +75,13 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     UUID sender_uuid = ((Player) sender).getUniqueId();
                     File gameyml = new File("plugins/Man10Checkers/game.yml");
                     YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
-                    boolean IsJoining = false;
                     boolean ExistBoard = false;
-                    for (String Boardname : yml.getKeys(false)) {
-                        if (args[1] == Boardname){
+                    boolean IsJoining = false;
+                    for (String BoardName : yml.getKeys(false)) {
+                        if (args[1].equals(BoardName)){
                             ExistBoard = true;
                         }
-                        for (String joinning_uuid : yml.getStringList(Boardname + ".Players"))
+                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players"))
                             if(sender_uuid.toString().equals(joinning_uuid)) {
                                 IsJoining = true;
                             }
@@ -92,19 +90,34 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         sender.sendMessage(Config.prefix + "§r別のボードでゲーム中は参加できません");
                         return true;
                     }
-                    if (yml.getBoolean(args[1] +(".DuringGame"))){
-                        sender.sendMessage(Config.prefix + "§rそのボードは使用中です");
+                    if (ExistBoard){
+                        sender.sendMessage(Config.prefix + "§rあなたはすでにボードを開いています");
                         return true;
                     }
-                    if (!ExistBoard){
-                        sender.sendMessage(Config.prefix + "§rそのボードは存在しません");
-                        return true;
+                    BoardGameSys.ResetYml((sender).getName());
+                    BoardGameSys.Recruiting = true;
+                    BoardGameSys.Players.add((Player) sender);
+                    BoardGameSys.saveData((sender).getName());
+                    return true;
+                }
+                else if (args[0].equals("open")){
+                    ///再度gui開く処理
+                    UUID sender_uuid = ((Player) sender).getUniqueId();
+                    File gameyml = new File("plugins/Man10Checkers/game.yml");
+                    YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
+                    for (String BoardName : yml.getKeys(false)) {
+                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players"))
+                            if(sender_uuid.toString().equals(joinning_uuid)) {
+                                BoardGameSys.LoadData(BoardName);
+                                ((Player) sender).openInventory(BoardGameSys.getInv());
+                                return true;
+                            }
                     }
                     return true;
-                    ///ゲームスタート処理
-
                 }
-                else if (args[0].equals("join")){
+                break;
+            case 2:
+                if (args[0].equals("join")){
                     if (!Config.system){
                         sender.sendMessage(Config.prefix + "§rシステムはOFFです");
                         return true;
@@ -114,11 +127,11 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     UUID sender_uuid = ((Player) sender).getUniqueId();
                     boolean IsJoining = false;
                     boolean ExistBoard = false;
-                    for (String Boardname : yml.getKeys(false)) {
-                        if (args[1] == Boardname){
+                    for (String BoardName : yml.getKeys(false)) {
+                        if (args[1] == BoardName){
                             ExistBoard = true;
                         }
-                        for (String joinning_uuid : yml.getStringList(Boardname + ".Players"))
+                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players"))
                             if(sender_uuid.toString().equals(joinning_uuid)) {
                                 IsJoining = true;
                             }
@@ -131,12 +144,20 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         sender.sendMessage(Config.prefix + "§rそのボードのゲームは存在しません");
                         return true;
                     }
-                    if (!yml.getBoolean(args[1] +(".DuringGame"))){
+                    BoardGameSys.LoadData(args[1]);
+                    if (!BoardGameSys.DuringGame){
                         sender.sendMessage(Config.prefix + "§rそのボードはプレイヤーを募集していません");
                         return true;
                     }
                     ///ゲーム参加処理
-                    yml.set(args[1] +(".Players"),sender_uuid);
+                    BoardGameSys.Players.add((Player) sender);
+                    BoardGameSys.Recruiting = false;
+                    BoardGameSys.DuringGame = true;
+                    BoardGameSys.saveData(args[1]);
+                    //gui開く処理
+                    Inventory inv = BoardGameSys.getInv();
+                    (BoardGameSys.Players.get(1)).openInventory(inv);
+                    (BoardGameSys.Players.get(2)).openInventory(inv);
                     return true;
                 }
                 else if (args[0].equals("end") && sender.hasPermission("mcheckers.op")){
@@ -166,8 +187,8 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     File gameyml = new File("plugins/Man10Checkers/game.yml");
                     YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
                     boolean ExistBoard = false;
-                    for (String Boardname : yml.getKeys(false)) {
-                        if (args[1] == Boardname){
+                    for (String BoardName : yml.getKeys(false)) {
+                        if (args[1] == BoardName){
                             ExistBoard = true;
                         }
                     }
@@ -202,11 +223,16 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                 e.printStackTrace();
                 sender.sendMessage(Config.prefix + "§rエラーが発生しました");
             }
-            if (args[0].equals("start")){
-                return Boardlist;
-            }
-            else if (args[0].equals("join") || (args[0].equals("end") && sender.hasPermission("mcheckers.op"))){
-                return Boardlist;
+            if (args[0].equals("join") || (args[0].equals("end") && sender.hasPermission("mcheckers.op"))){
+                //Recruiting
+                List<String> Joinable_Boards = new ArrayList<String>();
+                for (String BoardName : yml.getKeys(false)) {
+                    for (Boolean recruiting : yml.getBooleanList(BoardName + ".Recruiting"))
+                        if(recruiting) {
+                            Joinable_Boards.add(BoardName);
+                        }
+                }
+                return Joinable_Boards;
             }
             else if (args[0].equals("Board")){
                 if (sender.hasPermission("mcheckers.op")) return Arrays.asList("list", "create");
