@@ -10,6 +10,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
+import java.util.Currency;
+import java.util.UUID;
 
 import static main.mabowdoufu.BoardGameSys.*;
 
@@ -67,8 +69,13 @@ public class Events implements Listener {
         }
     }
     */
+    public static int x1;
+    public static int y1;
+    public static int x2;
+    public static int y2;
     @EventHandler
     public void InventoryClick(InventoryClickEvent e){
+        Player Clicker = (Player) e.getWhoClicked();
         BoardGameSys.LoadData(getBoard(e.getWhoClicked().getUniqueId()));
         if(e.getView().getTitle().equals(Config.prefix)){
             int PlayerTurn;
@@ -77,9 +84,58 @@ public class Events implements Listener {
             }else{
                 PlayerTurn = 2;
             }
-            if(PlayerTurn == Turn){
-                //メイン処理をここに書く
+            if(PlayerTurn != Turn){
+                return;
             }
+            //クリックしたマス獲得
+            //gamesysにマスの情報ぶちこむ
+            ///再度gui開く処理
+
+            File gameyml = new File("plugins/Man10Checkers/game.yml");
+            YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
+            String CurremtBoard ="";
+            for (String BoardName : yml.getKeys(false)) {
+                for (String joinning_uuid : yml.getStringList(BoardName + ".Players")) {
+                    UUID sender_uuid = (Clicker).getUniqueId();
+                    if (sender_uuid.toString().equals(joinning_uuid)) {
+                        CurremtBoard = BoardName;
+                    }
+                }
+            }
+            LoadData(CurremtBoard);
+
+            if(Click == 0){
+                Click++;
+                x1 = e.getRawSlot() % 9;
+                y1 = (e.getRawSlot() - x1)/9;
+                saveData(CurremtBoard);
+                return;
+            }else if(Click == 1){
+                Click =0;
+                x2 = e.getRawSlot() % 9;
+                y2 = (e.getRawSlot() - x2)/9;
+                BoardInput(CurremtBoard,x1,y1,x2,y2);
+                saveData(CurremtBoard);
+                switch (ErrorType){
+                    case 1:
+                        Clicker.sendMessage(Config.prefix + "§rシステムはOFFです");
+                        break;
+                    case 2:
+                        Clicker.sendMessage(Config.prefix + "§rシステムはOFFです");
+                        break;
+                    case 3:
+                        Clicker.sendMessage(Config.prefix + "§rシステムはOFFです");
+                        break;
+                }
+                //invのタイトル変更方法(pass
+                //ゲーム終了時の判定
+                Clicker.openInventory(BoardGameSys.getInv());
+                //インベントリへのアウトプット(マスに置くアイテムなど　完了
+
+                return;
+            }
+
+
         }
 
 

@@ -29,7 +29,9 @@ public class BoardGameSys {
     public static boolean DuringGame;
     public static boolean Recruiting;
     public static int Turn;
+    public static int Click;
     public static List<Player> Players;
+    public static int ErrorType;
 
     //のちのちsysから切り離し
     public static void ResetYml(String Boardname) {
@@ -64,8 +66,7 @@ public class BoardGameSys {
         yml.set(Boardname+ ".DuringGame", false);
         yml.set(Boardname+ ".Recruiting", false);
         yml.set(Boardname+ ".Turn", 1);
-        yml.set(Boardname+ ".Player1", 1);
-        yml.set(Boardname+ ".Player2", 1);
+        yml.set(Boardname+ ".Click", 1);
         PlayerPiece =1;
         try {
             yml.save(f);
@@ -82,6 +83,7 @@ public class BoardGameSys {
         DuringGame = yml.getBoolean(Boardname+".DuringGame");
         Recruiting = yml.getBoolean(Boardname+".Recruiting");
         Turn = yml.getInt(Boardname+".Turn");
+        Click = yml.getInt(Boardname+".Click");
         Players = (List<Player>) yml.get(Boardname+".Players");
 
     }
@@ -94,8 +96,8 @@ public class BoardGameSys {
         yml.set(Boardname+".DuringGame", DuringGame);
         yml.set(Boardname+".Recruiting", Recruiting);
         yml.set(Boardname+".Turn", Turn);
+        yml.set(Boardname+".Click", Click);
         yml.set(Boardname+".Players", Players);
-
         try {
             yml.save(f);
         } catch (Exception e) {
@@ -125,13 +127,17 @@ public class BoardGameSys {
 
         inv= Bukkit.createInventory(null,54,Config.prefix);
         int i =0;
+        int j =0;
         for(int[] BoardRow : Board){
             for (int Men : BoardRow){
-                i++;
                 int slot = (i%6 -1) + (int) floor((double) i /6) +1;
-                if(Men == 1) inv.setItem(slot,createGUIItem(BLACK_CONCRETE,"黒の駒",""));
-                if(Men == 2) inv.setItem(slot,createGUIItem(WHITE_CONCRETE,"白の駒",""));
+                if(Men == 1 && !IsKing[j][i]) inv.setItem(slot,createGUIItem(BLACK_CONCRETE,"黒の駒",""));
+                if(Men == 2 && !IsKing[j][i]) inv.setItem(slot,createGUIItem(WHITE_CONCRETE,"白の駒",""));
+                if(Men == 1 && IsKing[j][i]) inv.setItem(slot,createGUIItem(BLACK_GLAZED_TERRACOTTA,"黒のキング",""));
+                if(Men == 2 && IsKing[j][i]) inv.setItem(slot,createGUIItem(WHITE_GLAZED_TERRACOTTA,"白のキング",""));
+                i++;
             }
+            j++;
         }
         return inv;
     }
@@ -322,11 +328,13 @@ public class BoardGameSys {
 
     //駒をおけるか
     public static void BoardInput(String Boardname,int x1, int y1, int x2, int y2) {
+        ErrorType =0;
         LoadData(Boardname);
         PlayerPiece = yml.getInt(Boardname +".Turn");
 
         //チェッカーで使用しないマスを選択
         if ((((x1 % 2) + (y1 % 2) % 2) == 1) || (((x2 % 2) + (y2 % 2) % 2) == 1)) {
+            ErrorType =1;
             return;
         }
 
@@ -335,6 +343,7 @@ public class BoardGameSys {
         //破壊可能な手があるのにも関わらずその手を選択していない場合を除外
         if (!SelectCorrectMove(x1, y1, x2, y2)) {
             //相手の駒を飛び越えられる手が存在します。飛び越えられる手を選択してください。
+            ErrorType =2;
             return;
         }
 
@@ -360,6 +369,7 @@ public class BoardGameSys {
             }
         } else {
             //最初に選択した駒の一つ斜めの駒か、相手の駒を飛び越えられる場合は二つ斜め前の駒を選択してください。
+            ErrorType =3;
             return;
         }
 

@@ -81,10 +81,11 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         if (args[1].equals(BoardName)){
                             ExistBoard = true;
                         }
-                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players"))
-                            if(sender_uuid.toString().equals(joinning_uuid)) {
+                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players")) {
+                            if (sender_uuid.toString().equals(joinning_uuid)) {
                                 IsJoining = true;
                             }
+                        }
                     }
                     if (IsJoining){
                         sender.sendMessage(Config.prefix + "§r別のボードでゲーム中は参加できません");
@@ -106,12 +107,13 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     File gameyml = new File("plugins/Man10Checkers/game.yml");
                     YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
                     for (String BoardName : yml.getKeys(false)) {
-                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players"))
-                            if(sender_uuid.toString().equals(joinning_uuid)) {
+                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players")) {
+                            if (sender_uuid.toString().equals(joinning_uuid)) {
                                 BoardGameSys.LoadData(BoardName);
                                 ((Player) sender).openInventory(BoardGameSys.getInv());
                                 return true;
                             }
+                        }
                     }
                     return true;
                 }
