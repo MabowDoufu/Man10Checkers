@@ -110,7 +110,7 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         for (String joinning_uuid : yml.getStringList(BoardName + ".Players")) {
                             if (sender_uuid.toString().equals(joinning_uuid)) {
                                 BoardGameSys.LoadData(BoardName);
-                                ((Player) sender).openInventory(BoardGameSys.getInv());
+                                ((Player) sender).openInventory(BoardGameSys.getInv(""));
                                 return true;
                             }
                         }
@@ -157,7 +157,7 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     BoardGameSys.DuringGame = true;
                     BoardGameSys.saveData(args[1]);
                     //gui開く処理
-                    Inventory inv = BoardGameSys.getInv();
+                    Inventory inv = BoardGameSys.getInv("");
                     (BoardGameSys.Players.get(1)).openInventory(inv);
                     (BoardGameSys.Players.get(2)).openInventory(inv);
                     return true;

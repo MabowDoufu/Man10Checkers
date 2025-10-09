@@ -104,6 +104,16 @@ public class BoardGameSys {
             e.printStackTrace();
         }
     }
+    public static void deleteData(String Boardname) {
+        f = new File("plugins/Man10Checkers/game.yml");
+        yml = YamlConfiguration.loadConfiguration(f);
+        yml.set(Boardname, null);
+        try {
+            yml.save(f);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     protected static ItemStack createGUIItem(final Material material, final String name, final String... lore){
         final ItemStack item=new ItemStack(material,1);
         final ItemMeta meta=item.getItemMeta();
@@ -122,10 +132,10 @@ public class BoardGameSys {
         }
         return null;
     }
-    public static Inventory getInv(){
+    public static Inventory getInv(String title){
         Inventory inv;
 
-        inv= Bukkit.createInventory(null,54,Config.prefix);
+        inv= Bukkit.createInventory(null,54,Config.prefix + title);
         int i =0;
         int j =0;
         for(int[] BoardRow : Board){

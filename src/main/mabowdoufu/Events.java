@@ -1,4 +1,5 @@
 package main.mabowdoufu;
+import com.sun.jdi.connect.TransportTimeoutException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -76,10 +77,10 @@ public class Events implements Listener {
     @EventHandler
     public void InventoryClick(InventoryClickEvent e){
         Player Clicker = (Player) e.getWhoClicked();
-        BoardGameSys.LoadData(getBoard(e.getWhoClicked().getUniqueId()));
+        LoadData(getBoard(e.getWhoClicked().getUniqueId()));
         if(e.getView().getTitle().equals(Config.prefix)){
             int PlayerTurn;
-            if(BoardGameSys.Players.get(1) == e.getWhoClicked()){
+            if(Players.get(1) == e.getWhoClicked()){
                 PlayerTurn = 1;
             }else{
                 PlayerTurn = 2;
@@ -118,56 +119,41 @@ public class Events implements Listener {
                 saveData(CurremtBoard);
                 switch (ErrorType){
                     case 1:
-                        Clicker.sendMessage(Config.prefix + "§rシステムはOFFです");
+                        Clicker.openInventory(getInv("Error:チェッカーで使用しないマスを選択しています"));
                         break;
                     case 2:
-                        Clicker.sendMessage(Config.prefix + "§rシステムはOFFです");
+                        Clicker.openInventory(getInv("Error:相手の駒を飛び越えられる手が存在します。飛び越えられる手を選択してください。"));
                         break;
                     case 3:
-                        Clicker.sendMessage(Config.prefix + "§rシステムはOFFです");
+                        Clicker.openInventory(getInv("Error:最初に選択した駒の一つ斜めの駒か、相手の駒を飛び越えられる場合は二つ斜め前の駒を選択してください。"));
                         break;
                 }
                 //invのタイトル変更方法(pass
                 //ゲーム終了時の判定
-                Clicker.openInventory(BoardGameSys.getInv());
-                //インベントリへのアウトプット(マスに置くアイテムなど　完了
-
+                Clicker.openInventory(getInv(""));
+                if(WinCheck(CurremtBoard)==0) return;
+                //yml削除
+                deleteData(CurremtBoard);
+                //title変更
+                //opponentゲット
+                String WinnerName = "";
+                Player Opponent = null;
+                if(WinCheck(CurremtBoard)==1){
+                    WinnerName = Players.get(0).getName();
+                    Opponent = Players.get(1);
+                } else if (WinCheck(CurremtBoard)==2) {
+                    WinnerName = Players.get(1).getName();
+                    Opponent = Players.get(0);
+                }
+                Clicker.openInventory(getInv(WinnerName +"が勝利しました！！"));
+                Clicker.sendMessage(WinnerName +"が勝利しました！！");
+                Opponent.openInventory(getInv(WinnerName+"が勝利しました！！"));
+                Opponent.sendMessage(WinnerName+"が勝利しました！！");
                 return;
             }
 
 
         }
 
-
-        if (e.getView().title().equals(Component.text("[Man10Reversi] 特殊効果選択"))){
-            e.setCancelled(true);
-            GameManager g = Helper.GetGameForUUID(games.values(), e.getWhoClicked().getUniqueId());
-            if (g == null){
-                e.getWhoClicked().sendMessage(Config.prefix + "§r参加中のゲームが見つかりません");
-                e.getWhoClicked().closeInventory();
-                return;
-            }
-            if (g.state == GameManager.GameState.THINKING){
-                if (e.getCurrentItem() == null) return;
-                e.getWhoClicked().closeInventory();
-                String item_name = "";
-                if (e.getCurrentItem().getItemMeta().hasDisplayName()) {
-                    item_name = LegacyComponentSerializer.legacySection().serialize(e.getCurrentItem().getItemMeta().displayName());
-                }
-                Data.Ability ability = Data.Ability.fromLabel(item_name);
-                if (ability == null){
-                    e.getWhoClicked().sendMessage(Config.prefix + "§r特殊効果が見つかりませんでした");
-                    return;
-                }
-                g.SelectAbility((Player) e.getWhoClicked(), ability);
-            }
-            else {
-                e.getWhoClicked().closeInventory();
-                e.getWhoClicked().sendMessage(Config.prefix + "§r現在は選択できません");
-            }
-        }
-        else if (e.getView().title().equals(Component.text("[Man10Reversi] 特殊効果一覧"))){
-            e.setCancelled(true);
-        }
     }
 }
